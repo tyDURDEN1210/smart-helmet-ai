@@ -1,0 +1,14 @@
+[project]
+name = "smart-helmet-ai"
+version = "0.1.0"
+description = "Smart Helmet AI OpenEnv Project"
+authors = [{name = "Ash"}]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
