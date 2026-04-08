@@ -72,3 +72,9 @@ def run(task):
 if __name__ == "__main__":
     for task in TASK_REGISTRY.values():
         run(task)
+
+
+        import time
+
+while True:
+    time.sleep(60)
