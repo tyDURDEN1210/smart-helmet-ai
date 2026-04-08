@@ -7,7 +7,7 @@ from env.environment import SmartHelmetEnv
 from env.models import Action
 from env.tasks import TASK_REGISTRY
 
-# Load env variables
+# Load environment variables
 load_dotenv()
 
 # Optional OpenAI client (not required)
@@ -19,7 +19,7 @@ if os.getenv("OPENAI_API_KEY"):
     )
 
 
-# 🔥 Decision Logic (your AI brain)
+# 🧠 Decision logic
 def choose_action(obs):
 
     # 🚨 Crash handling
@@ -32,11 +32,11 @@ def choose_action(obs):
                 reason="No response after crash"
             )
 
-    # 📞 Incoming call while riding fast
+    # 📞 Incoming call safety
     if getattr(obs, "incoming_call", False) and getattr(obs, "speed", 0) > 40:
         return Action.ignore(reason="Avoid distraction while riding")
 
-    # 🎤 Voice assistant
+    # 🎤 Voice commands
     if getattr(obs, "voice_command", None):
         cmd = obs.voice_command.lower()
 
@@ -48,28 +48,40 @@ def choose_action(obs):
 
         if "message" in cmd:
             return Action.send_message(
-                content="I am currently riding, will reply later"
+                content="I am riding, will reply later"
             )
 
-    # 🚦 Smart alerts (NEW FEATURE)
+    # 🚦 Smart alerts
     if getattr(obs, "obstacle_ahead", False):
         return Action.alert("Obstacle ahead, slow down")
 
     if getattr(obs, "traffic_signal", "") == "red":
         return Action.alert("Red signal ahead, please stop")
 
-    # 😴 Default
+    # Default action
     return Action.wait()
 
 
-# 🔁 Run a single task
+# 🔁 Run simulation
 def run(task_name):
     print(f"\n[START]\ntask: {task_name}")
 
     env = SmartHelmetEnv()
 
-    # ✅ CORRECT WAY
-    obs = env.reset(task_name)
+    # ✅ FULL SAFE CONFIG (prevents all crashes)
+    config = {
+        "task": task_name,
+        "speed": 0,
+        "incoming_call": False,
+        "impact_detected": False,
+        "time_since_impact": 0,
+        "user_response": None,
+        "voice_command": None,
+        "obstacle_ahead": False,
+        "traffic_signal": "green"
+    }
+
+    obs = env.reset(config)
 
     done = False
     total_reward = 0
@@ -91,7 +103,7 @@ def run(task_name):
     print("score:", round(total_reward, 4))
 
 
-# 🚀 Main entry (runs all tasks)
+# 🚀 Main
 if __name__ == "__main__":
 
     print("===== SMART HELMET AI STARTING =====")
@@ -101,6 +113,6 @@ if __name__ == "__main__":
 
     print("\n===== RUN COMPLETE =====")
 
-    # 🔥 Keep container alive (IMPORTANT for HuggingFace)
+    # 🔥 Keep container alive (IMPORTANT for Hugging Face)
     while True:
         time.sleep(60)
