@@ -3,11 +3,16 @@ name = "smart-helmet-ai"
 version = "0.1.0"
 description = "Smart Helmet AI OpenEnv Project"
 authors = [{name = "Ash"}]
+
 dependencies = [
     "fastapi",
     "uvicorn",
-    "pydantic"
+    "pydantic",
+    "openenv>=0.1.13"
 ]
+
+[project.scripts]
+start = "server.app:app"
 
 [build-system]
 requires = ["setuptools", "wheel"]
