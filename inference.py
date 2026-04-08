@@ -1,75 +1,67 @@
+from pydantic import BaseModel
+from typing import Literal
 from env.environment import SmartHelmetEnv
-from env.models import Action
 
 
+# ✅ Allowed actions (VERY IMPORTANT)
+class Action(BaseModel):
+    action: Literal[
+        "handle_call",
+        "open_maps",
+        "play_music",
+        "ignore",
+        "trigger_emergency",
+        "wait",
+        "send_message",
+        "decline_call",
+        "alert_rider"
+    ]
+
+
+# ✅ Decision logic
 def choose_action(obs):
 
-    # 🛑 Obstacle
-    if getattr(obs, "obstacle", False):
-        return Action(action_type="alert_rider")
+    if obs.get("call"):
+        return Action(action="handle_call")
 
-    # 🚦 Traffic signal
-    if getattr(obs, "traffic_signal", "") == "red":
-        return Action(action_type="alert_rider")
+    if obs.get("traffic") == "high":
+        return Action(action="alert_rider")
 
-    # 🚀 Overspeed
-    if getattr(obs, "speed", 0) > 60:
-        return Action(action_type="alert_rider")
+    if obs.get("speed", 0) > 60:
+        return Action(action="alert_rider")
 
-    # 📩 Message
-    if getattr(obs, "incoming_message", None):
-        return Action(action_type="send_message")
-
-    # 📞 Call
-    if getattr(obs, "incoming_call", False):
-        return Action(action_type="decline_call")
-
-    # 🎵 Idle
-    if getattr(obs, "idle", False):
-        return Action(action_type="play_music")
-
-    return Action(action_type="wait")
+    return Action(action="wait")
 
 
-def run(task_name):
+# ✅ Main runner
+def run(task_name="task_voice_assistant"):
+
     print("===== SMART HELMET AI STARTING =====")
 
     env = SmartHelmetEnv()
+
+    obs = env.reset()
     total_reward = 0
 
     for step in range(20):
+
         print(f"\n[STEP {step}]")
 
-        # 🔥 Simulated environment
-        simulated_obs = {
-            "speed": 70 if step % 5 == 0 else 30,
-            "obstacle": True if step == 3 else False,
-            "traffic_signal": "red" if step == 6 else "green",
-            "incoming_call": True if step == 8 else False,
-            "incoming_message": "Hey bro" if step == 10 else None,
-            "idle": True if step == 15 else False
-        }
-
-        class Obj:
-            def __init__(self, d):
-                self.__dict__ = d
-
-        obs = Obj(simulated_obs)
-
         action = choose_action(obs)
-        print("action:", action.action_type)
+        print("action:", action.action)
 
         result = env.step(action)
 
-        if isinstance(result, tuple):
-            obs, reward, done, info = result
-        else:
-            raise ValueError("env.step() must return tuple")
+        # ✅ FIX tuple unpacking
+        obs, reward, done, info = result
 
-        reward_value = getattr(reward, "value", reward)
-        print("reward:", reward_value)
+        print("reward:", reward)
 
-        total_reward += reward_value
+        # ✅ FIX reward type
+        if hasattr(reward, "value"):
+            reward = reward.value
+
+        total_reward += reward
 
         if done:
             print("\n[END] Episode finished early")
@@ -79,5 +71,6 @@ def run(task_name):
     print("Total reward:", total_reward)
 
 
+# ✅ Entry point (IMPORTANT for HuggingFace)
 if __name__ == "__main__":
-    run("task_voice_assistant")
+    run()
