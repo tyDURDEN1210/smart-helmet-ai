@@ -61,21 +61,36 @@ def run(task_name):
     print("===== SMART HELMET AI STARTING =====")
 
     env = SmartHelmetEnv()
-
     obs = env.reset()
+
     total_reward = 0
 
     for step in range(20):
         print(f"\n[STEP {step}]")
 
-        action = choose_action(obs)
+        # 🔥 Simulated real-world inputs
+        simulated_obs = {
+            "speed": 70 if step % 5 == 0 else 30,
+            "obstacle": True if step == 3 else False,
+            "traffic_signal": "red" if step == 6 else "green",
+            "incoming_call": True if step == 8 else False,
+            "incoming_message": "Hey bro" if step == 10 else None,
+            "idle": True if step == 15 else False
+        }
 
+        # Convert dict → object
+        class Obj:
+            def __init__(self, d):
+                self.__dict__ = d
+
+        obs = Obj(simulated_obs)
+
+        action = choose_action(obs)
         print("action:", action.action_type)
 
-        # 🔥 Step execution
         result = env.step(action)
 
-        # ✅ FIX: unpack tuple properly
+        # ✅ Handle tuple returns properly
         if isinstance(result, tuple):
             if len(result) == 4:
                 obs, reward, done, info = result
@@ -87,7 +102,7 @@ def run(task_name):
         else:
             raise ValueError("env.step() must return a tuple")
 
-        # ✅ FIX: handle reward object safely
+        # ✅ Safe reward extraction
         try:
             reward_value = reward.value if hasattr(reward, "value") else float(reward)
         except:
