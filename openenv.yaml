@@ -1,0 +1,33 @@
+version: "1.0"
+
+environment:
+  id: smart-helmet-ai
+  name: Smart Helmet AI Safety Environment
+  python: "3.10"
+
+observation_space:
+  type: structured
+  fields:
+    speed: { type: int }
+    impact_confidence: { type: float }
+    false_impact: { type: bool }
+    step_count: { type: int }
+
+tasks:
+  - id: task_voice_assistant
+  - id: task_context_aware
+  - id: task_crash_emergency
+  - id: task_messaging
+    name: Smart Messaging Assistant
+    difficulty: medium
+
+  - id: task_spam_call
+    name: Spam Call Handling
+    difficulty: medium
+
+  - id: task_hazard_alert
+    name: Hazard Alert System
+    difficulty: medium
+
+entrypoints:
+  evaluate: python ./inference.py
