@@ -6,45 +6,28 @@ def choose_action(obs):
 
     # 🛑 Obstacle
     if getattr(obs, "obstacle", False):
-        return Action(
-            action_type="alert_rider",
-            message="Obstacle ahead! Slow down immediately"
-        )
+        return Action(action_type="alert_rider")
 
     # 🚦 Traffic signal
     if getattr(obs, "traffic_signal", "") == "red":
-        return Action(
-            action_type="alert_rider",
-            message="Red light! Stop the vehicle"
-        )
+        return Action(action_type="alert_rider")
 
     # 🚀 Overspeed
     if getattr(obs, "speed", 0) > 60:
-        return Action(
-            action_type="alert_rider",
-            message="You are overspeeding! Slow down"
-        )
+        return Action(action_type="alert_rider")
 
     # 📩 Message
     if getattr(obs, "incoming_message", None):
-        return Action(
-            action_type="send_message",
-            message="I'm riding right now, will reply later"
-        )
+        return Action(action_type="send_message")
 
     # 📞 Call
     if getattr(obs, "incoming_call", False):
-        return Action(
-            action_type="decline_call"
-        )
+        return Action(action_type="decline_call")
 
     # 🎵 Idle
     if getattr(obs, "idle", False):
-        return Action(
-            action_type="play_music"
-        )
+        return Action(action_type="play_music")
 
-    # Default
     return Action(action_type="wait")
 
 
@@ -57,7 +40,7 @@ def run(task_name):
     for step in range(20):
         print(f"\n[STEP {step}]")
 
-        # 🔥 Simulated inputs
+        # 🔥 Simulated environment
         simulated_obs = {
             "speed": 70 if step % 5 == 0 else 30,
             "obstacle": True if step == 3 else False,
