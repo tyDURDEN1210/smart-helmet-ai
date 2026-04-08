@@ -17,7 +17,6 @@ if os.getenv("OPENAI_API_KEY"):
     )
 
 
-# ✅ FIXED ACTION CREATION
 def choose_action(obs):
 
     if getattr(obs, "impact_detected", False):
@@ -94,15 +93,14 @@ def run(task_name):
     while not done:
         action = choose_action(obs)
 
-        result = env.step(action)
-        obs = result.observation
+        # ✅ FIXED HERE
+        obs, reward, done, info = env.step(action)
 
         print("[STEP]")
         print("action:", action.action_type)
-        print("reward:", result.reward.value)
+        print("reward:", reward)
 
-        total_reward += result.reward.value
-        done = result.done
+        total_reward += reward
 
     print("[END]")
     print("score:", round(total_reward, 4))
