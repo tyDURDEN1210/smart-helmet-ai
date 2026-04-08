@@ -93,14 +93,14 @@ def run(task_name):
     while not done:
         action = choose_action(obs)
 
-        # ✅ FIXED HERE
         obs, reward, done, info = env.step(action)
 
         print("[STEP]")
         print("action:", action.action_type)
-        print("reward:", reward)
+        print("reward:", reward.value)
 
-        total_reward += reward
+        # ✅ FIXED HERE
+        total_reward += reward.value
 
     print("[END]")
     print("score:", round(total_reward, 4))
