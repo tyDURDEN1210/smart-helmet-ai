@@ -1,3 +1,15 @@
+---
+title: Smart Helmet AI
+emoji: 🏍️
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+---
+
+
+
+
 # 🏍️ Smart Helmet AI Safety & Assistant Environment
 
 > **"What if your helmet could decide whether you live or die?"**
