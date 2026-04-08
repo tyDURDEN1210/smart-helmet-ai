@@ -7,10 +7,8 @@ from env.environment import SmartHelmetEnv
 from env.models import Action
 from env.tasks import TASK_REGISTRY
 
-# Load environment variables
 load_dotenv()
 
-# Optional OpenAI client (not required)
 client = None
 if os.getenv("OPENAI_API_KEY"):
     client = OpenAI(
@@ -19,56 +17,63 @@ if os.getenv("OPENAI_API_KEY"):
     )
 
 
-# 🧠 Decision logic
+# ✅ FIXED ACTION CREATION
 def choose_action(obs):
 
-    # 🚨 Crash handling
     if getattr(obs, "impact_detected", False):
         if getattr(obs, "time_since_impact", 0) < 10:
-            return Action.wait()
+            return Action(action_type="wait")
 
         if getattr(obs, "user_response", None) is False:
-            return Action.trigger_emergency(
+            return Action(
+                action_type="trigger_emergency",
                 reason="No response after crash"
             )
 
-    # 📞 Incoming call safety
     if getattr(obs, "incoming_call", False) and getattr(obs, "speed", 0) > 40:
-        return Action.ignore(reason="Avoid distraction while riding")
+        return Action(
+            action_type="ignore",
+            reason="Avoid distraction"
+        )
 
-    # 🎤 Voice commands
     if getattr(obs, "voice_command", None):
         cmd = obs.voice_command.lower()
 
         if "music" in cmd:
-            return Action.play_music()
+            return Action(action_type="play_music")
 
         if "map" in cmd or "navigate" in cmd:
-            return Action.open_maps(destination="nearest location")
+            return Action(
+                action_type="open_maps",
+                destination="nearest location"
+            )
 
         if "message" in cmd:
-            return Action.send_message(
+            return Action(
+                action_type="send_message",
                 content="I am riding, will reply later"
             )
 
-    # 🚦 Smart alerts
     if getattr(obs, "obstacle_ahead", False):
-        return Action.alert("Obstacle ahead, slow down")
+        return Action(
+            action_type="alert",
+            message="Obstacle ahead, slow down"
+        )
 
     if getattr(obs, "traffic_signal", "") == "red":
-        return Action.alert("Red signal ahead, please stop")
+        return Action(
+            action_type="alert",
+            message="Red signal ahead, stop"
+        )
 
-    # Default action
-    return Action.wait()
+    return Action(action_type="wait")
 
 
-# 🔁 Run simulation
 def run(task_name):
     print(f"\n[START]\ntask: {task_name}")
 
     env = SmartHelmetEnv()
 
-    # ✅ FULL SAFE CONFIG (prevents all crashes)
     config = {
         "task": task_name,
         "speed": 0,
@@ -103,9 +108,7 @@ def run(task_name):
     print("score:", round(total_reward, 4))
 
 
-# 🚀 Main
 if __name__ == "__main__":
-
     print("===== SMART HELMET AI STARTING =====")
 
     for task in TASK_REGISTRY:
@@ -113,6 +116,5 @@ if __name__ == "__main__":
 
     print("\n===== RUN COMPLETE =====")
 
-    # 🔥 Keep container alive (IMPORTANT for Hugging Face)
     while True:
         time.sleep(60)
