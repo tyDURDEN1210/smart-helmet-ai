@@ -1,80 +1,92 @@
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
 from env.environment import SmartHelmetEnv
 from env.models import Action
 from env.tasks import TASK_REGISTRY
 
+# Load environment variables
+load_dotenv()
+
+# Optional OpenAI client (won't crash if no key)
+client = None
+if os.getenv("OPENAI_API_KEY"):
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("API_BASE_URL")
+    )
+
+
+# ── Simple rule-based agent ─────────────────────────────────────────────
 
 def choose_action(obs):
+    """
+    Basic rule-based logic (no API required)
+    """
 
-    # 🚧 Hazard alerts
-    if obs.hazard_type and obs.hazard_distance and obs.hazard_distance < 50:
-        if obs.hazard_type == "obstacle":
-            return Action("alert_rider", {"message": "Slow down, obstacle ahead"})
-        if obs.hazard_type == "red_signal":
-            return Action("alert_rider", {"message": "Red signal ahead, slow down"})
-
-    # 🚨 Crash logic
+    # 🚨 Crash detected → wait first, then trigger emergency
     if obs.impact_detected:
-        if obs.false_impact:
-            return Action("wait", {})
-        if obs.time_since_impact >= 10 or obs.user_response is False:
-            return Action("trigger_emergency", {})
-        return Action("wait", {})
+        if obs.time_since_impact < 10:
+            return Action.wait()
+        if obs.user_response is False:
+            return Action.trigger_emergency("No response after crash")
 
-    # 📩 Messaging
-    if obs.incoming_message:
-        if obs.is_moving:
-            return Action("send_message", {"message": "I'm driving, will reply later."})
-        return Action("send_message", {"message": "Okay, I’ll respond shortly."})
+    # 📞 Incoming call while moving fast → ignore
+    if obs.incoming_call and obs.speed > 40:
+        return Action.ignore("Avoid distraction at high speed")
 
-    # 📞 Spam call
-    if obs.incoming_call and obs.caller_type == "spam":
-        return Action("decline_call", {})
+    # 🎵 Voice command handling
+    if obs.voice_command:
+        cmd = obs.voice_command.lower()
 
-    # ⚡ Speed safety
-    if obs.is_moving and obs.speed > 40:
-        return Action("wait", {})
+        if "music" in cmd:
+            return Action.play_music()
 
-    # 🎵 Voice commands
-    if obs.voice_command == "play music":
-        return Action("play_music", {})
-    if obs.voice_command == "open maps":
-        return Action("open_maps", {})
+        if "map" in cmd:
+            return Action.open_maps("nearest destination")
 
-    if obs.incoming_call:
-        return Action("handle_call", {"accept": False})
-
-    return Action("wait", {})
+    # 🛑 Default safe action
+    return Action.wait()
 
 
-def run(task):
-    env = SmartHelmetEnv()
-    obs = env.reset(task.config())
+# ── Run loop ────────────────────────────────────────────────────────────
 
-    print("[START]")
-    print(f"task: {task.name}")
+def run(task_name):
+    print(f"[START]\ntask: {task_name}")
+
+    env = SmartHelmetEnv(task_name)
+    obs = env.reset()
 
     done = False
+    total_reward = 0
 
     while not done:
         action = choose_action(obs)
-        obs, reward, done, _ = env.step(action)
+
+        result = env.step(action)
+        obs = result.observation
 
         print("[STEP]")
-        print(f"action: {action.action_type}")
-        print(f"reward: {reward.value:.2f}")
+        print("action:", action.action_type)
+        print("reward:", result.reward.value)
 
-    score = env.grade()
+        total_reward += result.reward.value
+        done = result.done
 
     print("[END]")
-    print(f"score: {score:.4f}")
+    print("score:", round(total_reward, 4))
 
+
+# ── Entry point ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    for task in TASK_REGISTRY.values():
+    for task in TASK_REGISTRY:
         run(task)
 
 
-        import time
+# 🔥 KEEP CONTAINER ALIVE (IMPORTANT FOR HUGGING FACE)
+
+import time
 
 while True:
     time.sleep(60)
