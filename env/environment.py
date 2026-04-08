@@ -45,4 +45,4 @@ class SmartHelmetEnv:
             "call": False
         }
 
-        return obs, reward, self._done, {}
+        return obs, float(reward), bool(self._done), {}

@@ -8,7 +8,7 @@ app = FastAPI()
 env = SmartHelmetEnv()
 
 
-# ✅ Action schema
+# ✅ Allowed actions
 class Action(BaseModel):
     action: Literal[
         "handle_call",
@@ -23,25 +23,27 @@ class Action(BaseModel):
     ]
 
 
-# ✅ Reset endpoint (VERY IMPORTANT)
+# ✅ RESET (must return ONLY observation)
 @app.post("/reset")
 def reset():
     obs = env.reset()
-    return {"observation": obs}
+    return {
+        "observation": obs
+    }
 
 
-# ✅ Step endpoint (VERY IMPORTANT)
+# ✅ STEP (STRICT FORMAT)
 @app.post("/step")
 def step(action: Action):
     obs, reward, done, info = env.step(action)
 
-    # Fix reward if needed
+    # Convert reward if needed
     if hasattr(reward, "value"):
         reward = reward.value
 
     return {
-        "observation": obs,
-        "reward": reward,
-        "done": done,
-        "info": info
+        "observation": obs,   # MUST be dict
+        "reward": float(reward),  # MUST be float
+        "done": bool(done),   # MUST be bool
+        "info": info if isinstance(info, dict) else {}
     }
