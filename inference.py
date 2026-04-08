@@ -1,118 +1,110 @@
-from openai import OpenAI
-import os
-import time
-from dotenv import load_dotenv
-
 from env.environment import SmartHelmetEnv
 from env.models import Action
-from env.tasks import TASK_REGISTRY
-
-load_dotenv()
-
-client = None
-if os.getenv("OPENAI_API_KEY"):
-    client = OpenAI(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_url=os.getenv("API_BASE_URL")
-    )
 
 
 def choose_action(obs):
+    """
+    Decide what action to take based on observation
+    """
 
-    if getattr(obs, "impact_detected", False):
-        if getattr(obs, "time_since_impact", 0) < 10:
-            return Action(action_type="wait")
-
-        if getattr(obs, "user_response", None) is False:
-            return Action(
-                action_type="trigger_emergency",
-                reason="No response after crash"
-            )
-
-    if getattr(obs, "incoming_call", False) and getattr(obs, "speed", 0) > 40:
-        return Action(
-            action_type="ignore",
-            reason="Avoid distraction"
-        )
-
-    if getattr(obs, "voice_command", None):
-        cmd = obs.voice_command.lower()
-
-        if "music" in cmd:
-            return Action(action_type="play_music")
-
-        if "map" in cmd or "navigate" in cmd:
-            return Action(
-                action_type="open_maps",
-                destination="nearest location"
-            )
-
-        if "message" in cmd:
-            return Action(
-                action_type="send_message",
-                content="I am riding, will reply later"
-            )
-
-    if getattr(obs, "obstacle_ahead", False):
+    # 🛑 Obstacle detection
+    if getattr(obs, "obstacle", False):
         return Action(
             action_type="alert",
-            message="Obstacle ahead, slow down"
+            message="Obstacle ahead! Slow down immediately"
         )
 
+    # 🚦 Traffic signal
     if getattr(obs, "traffic_signal", "") == "red":
         return Action(
             action_type="alert",
-            message="Red signal ahead, stop"
+            message="Red light! Please stop"
+        )
+
+    # 🚀 Overspeed warning
+    if getattr(obs, "speed", 0) > 60:
+        return Action(
+            action_type="alert",
+            message="You are overspeeding! Slow down"
+        )
+
+    # 📩 Incoming message → auto reply
+    if getattr(obs, "incoming_message", None):
+        return Action(
+            action_type="auto_reply",
+            message="I'm riding right now, will reply later"
+        )
+
+    # 📞 Incoming call → reject
+    if getattr(obs, "incoming_call", False):
+        return Action(
+            action_type="reject_call"
+        )
+
+    # 🎵 Play music if idle
+    if getattr(obs, "idle", False):
+        return Action(
+            action_type="play_music"
+        )
+
+    # 🧠 Default smart behavior
+    if getattr(obs, "speed", 0) > 0:
+        return Action(
+            action_type="alert",
+            message="Stay focused and ride safe"
         )
 
     return Action(action_type="wait")
 
 
 def run(task_name):
-    print(f"\n[START]\ntask: {task_name}")
+    print("===== SMART HELMET AI STARTING =====")
 
     env = SmartHelmetEnv()
 
-    config = {
-        "task": task_name,
-        "speed": 0,
-        "incoming_call": False,
-        "impact_detected": False,
-        "time_since_impact": 0,
-        "user_response": None,
-        "voice_command": None,
-        "obstacle_ahead": False,
-        "traffic_signal": "green"
-    }
-
-    obs = env.reset(config)
-
-    done = False
+    obs = env.reset()
     total_reward = 0
 
-    while not done:
+    for step in range(20):
+        print(f"\n[STEP {step}]")
+
         action = choose_action(obs)
 
-        obs, reward, done, info = env.step(action)
-
-        print("[STEP]")
         print("action:", action.action_type)
-        print("reward:", reward.value)
 
-        # ✅ FIXED HERE
-        total_reward += reward.value
+        # 🔥 Step execution
+        result = env.step(action)
 
-    print("[END]")
-    print("score:", round(total_reward, 4))
+        # ✅ FIX: unpack tuple properly
+        if isinstance(result, tuple):
+            if len(result) == 4:
+                obs, reward, done, info = result
+            elif len(result) == 3:
+                obs, reward, done = result
+                info = {}
+            else:
+                raise ValueError("Unexpected env.step() return format")
+        else:
+            raise ValueError("env.step() must return a tuple")
+
+        # ✅ FIX: handle reward object safely
+        try:
+            reward_value = reward.value if hasattr(reward, "value") else float(reward)
+        except:
+            reward_value = 0
+
+        print("reward:", reward_value)
+
+        total_reward += reward_value
+
+        if done:
+            print("\n[END] Episode finished early")
+            break
+
+    print("\n===== RUN COMPLETE =====")
+    print("Total reward:", total_reward)
 
 
 if __name__ == "__main__":
-    print("===== SMART HELMET AI STARTING =====")
-
-    for task in TASK_REGISTRY:
-        run(task)
-
-    print("\n===== RUN COMPLETE =====")
-
-    while True:
-        time.sleep(60)
+    task = "task_voice_assistant"
+    run(task)
