@@ -3,57 +3,48 @@ from env.models import Action
 
 
 def choose_action(obs):
-    """
-    Decide what action to take based on observation
-    """
 
-    # 🛑 Obstacle detection
+    # 🛑 Obstacle
     if getattr(obs, "obstacle", False):
         return Action(
-            action_type="alert",
+            action_type="alert_rider",
             message="Obstacle ahead! Slow down immediately"
         )
 
     # 🚦 Traffic signal
     if getattr(obs, "traffic_signal", "") == "red":
         return Action(
-            action_type="alert",
-            message="Red light! Please stop"
+            action_type="alert_rider",
+            message="Red light! Stop the vehicle"
         )
 
-    # 🚀 Overspeed warning
+    # 🚀 Overspeed
     if getattr(obs, "speed", 0) > 60:
         return Action(
-            action_type="alert",
+            action_type="alert_rider",
             message="You are overspeeding! Slow down"
         )
 
-    # 📩 Incoming message → auto reply
+    # 📩 Message
     if getattr(obs, "incoming_message", None):
         return Action(
-            action_type="auto_reply",
+            action_type="send_message",
             message="I'm riding right now, will reply later"
         )
 
-    # 📞 Incoming call → reject
+    # 📞 Call
     if getattr(obs, "incoming_call", False):
         return Action(
-            action_type="reject_call"
+            action_type="decline_call"
         )
 
-    # 🎵 Play music if idle
+    # 🎵 Idle
     if getattr(obs, "idle", False):
         return Action(
             action_type="play_music"
         )
 
-    # 🧠 Default smart behavior
-    if getattr(obs, "speed", 0) > 0:
-        return Action(
-            action_type="alert",
-            message="Stay focused and ride safe"
-        )
-
+    # Default
     return Action(action_type="wait")
 
 
@@ -61,14 +52,12 @@ def run(task_name):
     print("===== SMART HELMET AI STARTING =====")
 
     env = SmartHelmetEnv()
-    obs = env.reset()
-
     total_reward = 0
 
     for step in range(20):
         print(f"\n[STEP {step}]")
 
-        # 🔥 Simulated real-world inputs
+        # 🔥 Simulated inputs
         simulated_obs = {
             "speed": 70 if step % 5 == 0 else 30,
             "obstacle": True if step == 3 else False,
@@ -78,7 +67,6 @@ def run(task_name):
             "idle": True if step == 15 else False
         }
 
-        # Convert dict → object
         class Obj:
             def __init__(self, d):
                 self.__dict__ = d
@@ -90,24 +78,12 @@ def run(task_name):
 
         result = env.step(action)
 
-        # ✅ Handle tuple returns properly
         if isinstance(result, tuple):
-            if len(result) == 4:
-                obs, reward, done, info = result
-            elif len(result) == 3:
-                obs, reward, done = result
-                info = {}
-            else:
-                raise ValueError("Unexpected env.step() return format")
+            obs, reward, done, info = result
         else:
-            raise ValueError("env.step() must return a tuple")
+            raise ValueError("env.step() must return tuple")
 
-        # ✅ Safe reward extraction
-        try:
-            reward_value = reward.value if hasattr(reward, "value") else float(reward)
-        except:
-            reward_value = 0
-
+        reward_value = getattr(reward, "value", reward)
         print("reward:", reward_value)
 
         total_reward += reward_value
@@ -121,5 +97,4 @@ def run(task_name):
 
 
 if __name__ == "__main__":
-    task = "task_voice_assistant"
-    run(task)
+    run("task_voice_assistant")
